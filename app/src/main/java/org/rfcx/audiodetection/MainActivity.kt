@@ -5,8 +5,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.util.Log
 import android.widget.Button
-import org.rfcx.guardian.guardian.audio.detect.AudioConverter
-import org.rfcx.guardian.guardian.audio.detect.pipeline.MLPredictor
+import org.rfcx.audiodetection.AudioConverter.sliceTo
 import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
@@ -14,11 +13,17 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         try {
-            val predictor = MLPredictor().also {
+            MLPredictor().also {
                 it.load(this)
                 val btn = this.findViewById<Button>(R.id.btnDetect)
                 btn.setOnClickListener { s ->
-                    it.run(AudioConverter.readAudioSimple(Environment.getExternalStorageDirectory().absolutePath + "/1608282235295.wav"))
+                    val audio = AudioConverter.readAudioSimple(Environment.getExternalStorageDirectory().absolutePath + "/1608282235295.wav").sliceTo(0)
+                    audio.forEachIndexed { index, audioChunk ->
+                        if (audioChunk.size == 15600) {
+                            val output = it.run(audioChunk)
+                            Log.d("Rfcx", output)
+                        }
+                    }
                 }
             }
         } catch (e: Exception) {

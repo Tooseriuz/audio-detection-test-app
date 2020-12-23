@@ -1,4 +1,4 @@
-package org.rfcx.guardian.guardian.audio.detect.pipeline
+package org.rfcx.audiodetection
 
 import android.content.Context
 import android.os.Environment
@@ -41,34 +41,27 @@ class MLPredictor: Predictor {
         }
     }
 
-    override fun run(input: FloatArray) {
+    override fun run(input: FloatArray): String {
         if (interpreter == null) {
-            return
+            return ""
         }
+        // fix output size to 521
         val outputShape: Array<FloatArray> = arrayOf(FloatArray(521))
-        Log.d("Rfcx", input.size.toString())
         try {
-            input.toList().chunked(15600).forEach {
-                if (it.size == 15600) {
-                    interpreter?.run(it.toFloatArray(), outputShape)
-                    outputShape[0].forEachIndexed { index, fl ->
-                        if (fl != 0f && fl >= 0.01f) {
-                            Log.d("Rfcx", "$index : $fl")
-                        }
-                    }
-                }
-            }
+            interpreter?.run(arrayOf(input), outputShape)
         } catch (e: Exception) {
             Log.e("Rfcx", e.message)
         }
 
-//        outputShape[0].filter { it != 0f }.forEach {
-//            Log.d("Rfcx", it.toString())
-//        }
-    }
+        val filteredOutput = arrayListOf<String>()
+        outputShape[0].forEachIndexed { index, fl ->
+            // pick only confidence more than 0.1
+            if (fl != 0f && fl >= 0.1f) {
+                filteredOutput.add("$index-$fl")
+            }
+        }
 
-    private fun FloatArray.toSmallChunk(number: Int): FloatArray {
-        return this.copyOfRange(0, number)
+        return filteredOutput.joinToString("*")
     }
 
 }
